@@ -26,7 +26,7 @@ from gi.repository import GObject
 from gi.repository import Gst
 from gi.repository import Gtk, GLib
 # Because of https://bugzilla.gnome.org/show_bug.cgi?id=698005
-from gi.repository import Gtk, GdkX11
+from gi.repository import Gtk, GdkX11, GdkPixbuf
 # Needed for window.get_xid(), xvimagesink.set_window_handle(), respectively:
 from gi.repository import GdkX11, GstVideo
 
@@ -49,15 +49,47 @@ class BarcodeReader(object):
         log.debug("Message: %s", message)
         if message:
             struct = message.get_structure()
-            if struct.get_name() == 'barcode':
+            struct_name = struct.get_name()
+            log.debug('Message name: %s', struct_name)
+            if struct_name == 'barcode':
+                if struct.has_field ("frame"):
+                    sample = struct.get_value ("frame")
+                    log.info ("uuhh,  found image %s", sample)
+                    
+                    target_caps = Gst.Caps.from_string('video/x-raw,format=RGB')
+                    converted_sample = GstVideo.video_convert_sample(
+                        sample, target_caps, Gst.CLOCK_TIME_NONE)
+                    buffer = converted_sample.get_buffer()
+                    pixbuf = buffer.get_data()
+                    
                 assert struct.has_field('symbol')
                 barcode = struct.get_string('symbol')
-                log.info("Read Barcode: {}".format(barcode))
-                image = ''
-                self.on_barcode(barcode, message, image)
+                log.info("Read Barcode: {}".format(barcode)) 
+
+                timestamp = struct.get_clock_time("timestamp")[1]
+                log.info("At %s", timestamp)
+                
+                # We now try to get the frame which caused
+                # zbar to generate the barcode signal.
+                # This is only an approximation, though,
+                # as several threads are involved and
+                # the imagesink might have advanced.
+                # So this must be regarded as prototype.
+                # There is https://bugzilla.gnome.org/show_bug.cgi?id=747557
+                sample = self.imagesink.get_last_sample()
+                log.info('last sample: %s', sample)
+                caps = Gst.Caps.from_string("video/x-raw,format=RGB")
+                conv = GstVideo.video_convert_sample(sample, caps, Gst.CLOCK_TIME_NONE)
+                #log.debug('last data: %r', conv)
+                buf = conv.get_buffer()
+                image = buf.extract_dup(0, buf.get_size())
+
+               self.on_barcode(barcode, message, image)
+                
 
     def run(self):
         p = "v4l2src ! tee name=t ! queue ! videoconvert "
+        p += " ! identity name=ident signal-handoffs=true"
         p += " ! zbar "
         p += " ! fakesink t. ! queue ! videoconvert "
         p += " ! xvimagesink name=imagesink"
@@ -65,10 +97,14 @@ class BarcodeReader(object):
         #p = 'uridecodebin file:///tmp/image.jpg ! tee name=t ! queue ! videoconvert ! zbar ! fakesink t. ! queue ! videoconvert ! xvimagesink'
         self.a = a = Gst.parse_launch(p)
         self.bus = bus = a.get_bus()
+        self.imagesink = self.a.get_by_name('imagesink')
+        self.ident = self.a.get_by_name('ident')
 
         bus.connect('message', self.on_message)
         bus.connect('sync-message::element', self.on_sync_message)
         bus.add_signal_watch()
+        
+        self.ident.connect('handoff', self.on_handoff)
 
         a.set_state(Gst.State.PLAYING)
         self.running = True
@@ -79,6 +115,14 @@ class BarcodeReader(object):
     def on_sync_message(self, bus, message):
         log.debug("Sync Message!")
         pass
+
+    
+    def on_handoff(self, element, buffer, *args):
+        log.debug('Handing of %r', buffer)
+        dec_timestamp = buffer.dts
+        p_timestamp = buffer.pts
+        log.debug("ts: %s", p_timestamp)
+
 
 class BarcodeReaderGTK(Gtk.DrawingArea, BarcodeReader):
 
