@@ -51,40 +51,22 @@ class BarcodeReader(object):
             struct = message.get_structure()
             struct_name = struct.get_name()
             log.debug('Message name: %s', struct_name)
+            converted_sample = None
             if struct_name == 'barcode':
+                pixbuf = None
                 if struct.has_field ("frame"):
                     sample = struct.get_value ("frame")
                     log.info ("uuhh,  found image %s", sample)
                     
-                    target_caps = Gst.Caps.from_string('video/x-raw,format=RGB')
+                    target_caps = Gst.Caps.from_string('video/x-raw,format=RGBA')
                     converted_sample = GstVideo.video_convert_sample(
                         sample, target_caps, Gst.CLOCK_TIME_NONE)
-                    buffer = converted_sample.get_buffer()
-                    pixbuf = buffer.get_data()
-                    
+                                        
                 assert struct.has_field('symbol')
                 barcode = struct.get_string('symbol')
                 log.info("Read Barcode: {}".format(barcode)) 
 
-                timestamp = struct.get_clock_time("timestamp")[1]
-                log.info("At %s", timestamp)
-                
-                # We now try to get the frame which caused
-                # zbar to generate the barcode signal.
-                # This is only an approximation, though,
-                # as several threads are involved and
-                # the imagesink might have advanced.
-                # So this must be regarded as prototype.
-                # There is https://bugzilla.gnome.org/show_bug.cgi?id=747557
-                sample = self.imagesink.get_last_sample()
-                log.info('last sample: %s', sample)
-                caps = Gst.Caps.from_string("video/x-raw,format=RGB")
-                conv = GstVideo.video_convert_sample(sample, caps, Gst.CLOCK_TIME_NONE)
-                #log.debug('last data: %r', conv)
-                buf = conv.get_buffer()
-                image = buf.extract_dup(0, buf.get_size())
-
-               self.on_barcode(barcode, message, image)
+                self.on_barcode(barcode, message, converted_sample)
                 
 
     def run(self):
@@ -130,7 +112,7 @@ class BarcodeReaderGTK(Gtk.DrawingArea, BarcodeReader):
         'barcode': (GObject.SIGNAL_RUN_LAST, None,
                     (str, # The barcode string
                      Gst.Message.__gtype__, # The GStreamer message itself
-                     str, # The image data containing the barcode
+                     Gst.Sample.__gtype__, # The image data containing the barcode
                     ),
                    )
     }
@@ -293,17 +275,63 @@ class SimpleInterface(ReaderApp):
             return super(SimpleInterface, self).on_message(bus, message)
 
 
-    def on_barcode(self, reader, barcode, message, image):
+    def on_barcode(self, reader, barcode, message, sample):
+        buffer = sample.get_buffer()
+        pixbuf = buffer.extract_dup(0, buffer.get_size())
+        
+        caps = sample.get_caps()
+        struct = caps.get_structure(0)
+        
         colorspace = GdkPixbuf.Colorspace.RGB
-        alpha = False
+        alpha = True
         bps = 8
-        width = 800
-        height = 600
-        rowstride = 30
-        pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
-            GLib.Bytes.new_take(image),
-            colorspace, alpha, bps, width, height, rowstride)
-        self.image.set_from_pixbuf(pixbuf)
+        width_struct = struct.get_int("width")
+        assert width_struct[0]
+        height_struct = struct.get_int("height")
+        assert height_struct[0]
+        original_width = width_struct[1]
+        original_height = height_struct[1]
+        rowstride = bps / 8 * 4 * original_width
+
+        log.debug("bytes: %r, colorspace: %r, aplah %r, bps: %r, w: %r, h: %r, r: %r",
+            GLib.Bytes.new_take(pixbuf),
+            colorspace, alpha, bps, original_width,
+            original_height, rowstride,
+        )
+        gdkpixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
+            GLib.Bytes.new_take(pixbuf),
+            colorspace, alpha, bps, original_width,
+            original_height, rowstride)
+        self.original_pixbuf = gdkpixbuf
+
+
+        # Scale the pixbuf down to whatever space we have
+        allocation = self.image.get_allocation()
+        width = allocation.width
+        height = allocation.height
+        log.info('Allocated size: %s, %s', width, height)
+        #new_pixbuf = GdkPixbuf.Pixbuf(width=width, height=height)
+        new_pixbuf = GdkPixbuf.Pixbuf.new_from_bytes(
+            GLib.Bytes.new_take(pixbuf),
+            colorspace, alpha, bps,
+            width, height,
+            width * 4)
+        # No idea what all these arguments are...
+        ratio = min (1.0 * width / original_width,  1.0 * height / original_height)
+        new_width = width * ratio
+        new_height = height * ratio
+        log.debug("w: %r h: %r (from: %r)", new_width, new_height, ratio)
+        assert new_width > 0
+        assert new_height > 0
+        scaled_pixbuf = gdkpixbuf.scale_simple(
+            #0, 0,
+            #new_width,  new_height,
+            width,  height,
+            #0, 0,
+            #1.0 * width / original_width,  1.0 * height / original_height,
+            GdkPixbuf.InterpType.NEAREST)
+        
+        self.image.set_from_pixbuf(scaled_pixbuf)
 
 
 def main():
