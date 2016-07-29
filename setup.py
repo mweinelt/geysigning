@@ -7,6 +7,8 @@ from setuptools.command.install import install
 import os
 import sys
 
+asdf
+
 # Just in case we're attempting to execute this setup.py
 # when cwd != thisdir...
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -16,7 +18,7 @@ with open(os.path.join('keysign', '_version.py')) as f:
 
 
 share_dir = os.path.join(
-    sysconfig.get_python_lib(),  # the egg directory
+    #sysconfig.get_python_lib(),  # the egg directory
     "..",    # site-packages
     "..",    # python7.4
     "..",    # lib
@@ -49,7 +51,7 @@ setup(
         ( #os.path.join(share_dir, 'applications'),
          '$prefix/share/applications',
          ['data/gnome-keysign.desktop']),
-        ( 'share/appdata',
+        ( '$prefix/share/appdata',
          ['data/gnome-keysign.appdata.xml']),
         ( '$prefix/icons/hicolor/scalable/apps',
          ['data/gnome-keysign.svg']),
