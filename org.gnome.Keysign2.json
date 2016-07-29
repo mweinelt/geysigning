@@ -1,0 +1,103 @@
+{
+    "id": "org.mypaint.MypaintDevel",
+    "branch": "master",
+    "runtime": "org.gnome.Platform",
+    "runtime-version": "3.20",
+    "sdk": "org.gnome.Sdk",
+    "command": "gnome-keysign",
+    "rename-desktop-file": "gnome-keysign.desktop",
+    "rename-appdata-file": "gnome-keysign.appdata.xml",
+    "rename-icon": "gnome-keysign",
+    "copy-icon": true,
+    "finish-args": ["--share=ipc", "--socket=x11", "--filesystem=host" ],
+    "appstream-compose": false,
+    "tags": ["nightly"],
+    "desktop-file-name-prefix": "(Nightly) ",
+    "build-options" : {
+        "cflags": "-O2 -g",
+        "cxxflags": "-O2 -g",
+        "env": {
+            "V": "1"
+        }
+    },
+    "cleanup": ["/include", "/lib/pkgconfig", "/share/pkgconfig", "/share/aclocal", "/man", "/share/man", "/share/gtk-doc", "/share/vala", "*.la", "*.a"],
+    "modules": [
+        {
+            "name": "swig",
+            "config-opts": ["--without-boost", "--without-pcre"],
+            "cleanup": [ "*" ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "http://prdownloads.sourceforge.net/swig/swig-3.0.7.tar.gz",
+                    "sha256": "06dc8816a225667ce1eee545af3caf87e1bbaa379c32838d4cea53152514348d"
+                }
+            ]
+        },
+        {
+            "name": "py2cairo",
+            "rm-configure": true,
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "http://cairographics.org/releases/py2cairo-1.10.0.tar.bz2",
+                    "sha256": "d30439f06c2ec1a39e27464c6c828b6eface3b22ee17b2de05dc409e429a7431"
+                },
+                {
+                    "type": "script",
+                    "commands": [
+                        "libtoolize --force",
+                        "aclocal",
+                        "autoheader",
+                        "automake --force-missing --add-missing --foreign",
+                        "autoconf"
+                    ],
+                    "dest-filename": "autogen.sh"
+                }
+            ]
+        },
+        {
+            "name": "pygobject",
+            "build-options" : {
+                "env": {
+                    "PYTHON": "python2"
+                }
+            },
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "http://ftp.gnome.org/pub/GNOME/sources/pygobject/3.18/pygobject-3.18.2.tar.xz",
+                    "sha256": "2a3cad1517916b74e131e6002c3824361aee0671ffb0d55ded119477fc1c2c5f"
+                }
+            ]
+        },
+        {
+            "name": "babl",
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "git://git.gnome.org/babl"
+                }
+            ]
+        },
+        {
+            "name": "gnome-keysign",
+            "no-autogen": true,
+            "build-options": {
+                "build-args" : ["--share=network"]
+            },
+            "sources": [
+                {
+                    "type": "git",
+                    "url": "https://github.com/muelli/geysigning.git"
+                    , "url": "."
+                },
+                {
+                    "type": "file",
+                    "path": "mypaint-Makefile",
+                    "dest-filename": "Makefile"
+                }
+            ]
+        }
+    ]
+}
