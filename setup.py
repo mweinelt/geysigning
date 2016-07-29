@@ -7,7 +7,6 @@ from setuptools.command.install import install
 import os
 import sys
 
-asdf
 
 # Just in case we're attempting to execute this setup.py
 # when cwd != thisdir...
