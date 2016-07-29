@@ -46,7 +46,7 @@ setup(
     package_dir={
         'keysign': 'keysign',
         'monkeysign': 'monkeysign/monkeysign'},
-    package_data={'keysign': ['data/*']},
+    #package_data={'keysign': ['data/*']},
     data_files=[
         ( #os.path.join(share_dir, 'applications'),
          '$prefix/share/applications',
