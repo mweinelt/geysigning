@@ -15,6 +15,17 @@ with open(os.path.join('keysign', '_version.py')) as f:
     exec(f.read())
 
 
+share_dir = '/'
+from distutils import sysconfig
+
+share_dir = os.path.join(
+    sysconfig.get_python_lib(),  # the egg directory
+    "..",    # site-packages
+    "..",    # python7.4
+    "..",    # lib
+    "share",
+    "gks1", "data")
+#share_dir = "/app"
 setup(
     name = 'gnome-keysign',
     version = __version__,
@@ -33,11 +44,18 @@ setup(
         'monkeysign.gpg',
     ],
     #package_dir={'keysign': 'keysign'},
-    package_dir={'monkeysign': 'monkeysign/monkeysign'},
-    #package_data={'keysign': ['data/']},
+    package_dir={
+        'keysign': 'keysign',
+        'monkeysign': 'monkeysign/monkeysign'},
+    package_data={'keysign': ['data/*']},
     data_files=[
-        ('share/applications', ['data/gnome-keysign.desktop']),
-        ('share/icons/hicolor/scalable/apps', ['data/gnome-keysign.svg']),
+        ( #os.path.join(share_dir, 'applications'),
+         '$prefix/share/applications',
+         ['data/gnome-keysign.desktop']),
+        ( 'share/appdata',
+         ['data/gnome-keysign.appdata.xml']),
+        (os.path.join(share_dir, 'icons/hicolor/scalable/apps'),
+         ['data/gnome-keysign.svg']),
     ],
     include_package_data = True,
     #scripts = ['gnome-keysign.py'],
