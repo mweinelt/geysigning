@@ -72,15 +72,6 @@
             ]
         },
         {
-            "name": "babl",
-            "sources": [
-                {
-                    "type": "git",
-                    "url": "git://git.gnome.org/babl"
-                }
-            ]
-        },
-        {
             "name": "gnome-keysign",
             "no-autogen": true,
             "build-options": {
