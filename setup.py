@@ -48,11 +48,11 @@ setup(
     #package_data={'keysign': ['data/*']},
     data_files=[
         ( #os.path.join(share_dir, 'applications'),
-         '$prefix/share/applications',
+         'share/applications',
          ['data/gnome-keysign.desktop']),
-        ( '$prefix/share/appdata',
+        ( 'share/appdata',
          ['data/gnome-keysign.appdata.xml']),
-        ( '$prefix/icons/hicolor/scalable/apps',
+        ( 'icons/hicolor/scalable/apps',
          ['data/gnome-keysign.svg']),
     ],
     include_package_data = True,
@@ -66,9 +66,9 @@ setup(
         # But this version seems to be requiring an old pyopenssl
         # with SSLv3 support which doesn't work with Ubuntu's 16.04.
         # So let's require a more modern requests.
-        'requests>=2.6',
+        #'requests>=2.6',
         
-        'qrcode',
+        #'qrcode',
         #'monkeysign', # Apparently not in the cheeseshop
         # avahi # Also no entry in the cheeseshop
         # dbus # dbus-python is in the cheeseshop but not pip-able
@@ -119,5 +119,6 @@ setup(
         'Topic :: Multimedia :: Video :: Capture',
         'Topic :: Security :: Cryptography',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        ]
+        ],
+        scripts= ['gnome-keysign.py']
     )
