@@ -8,10 +8,10 @@ qrcode
 
 
 # Additional Development packages
-pytest
-pytest-xdist
-pylint
-pep8
+#pytest
+#pytest-xdist
+#pylint
+#pep8
 
 # Distribution packages
 # python2
