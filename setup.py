@@ -66,9 +66,9 @@ setup(
         # But this version seems to be requiring an old pyopenssl
         # with SSLv3 support which doesn't work with Ubuntu's 16.04.
         # So let's require a more modern requests.
-        #'requests>=2.6',
+        'requests>=2.6',
         
-        #'qrcode',
+        'qrcode',
         #'monkeysign', # Apparently not in the cheeseshop
         # avahi # Also no entry in the cheeseshop
         # dbus # dbus-python is in the cheeseshop but not pip-able
