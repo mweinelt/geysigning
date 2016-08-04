@@ -52,7 +52,7 @@ setup(
          ['data/gnome-keysign.desktop']),
         ( 'share/appdata',
          ['data/gnome-keysign.appdata.xml']),
-        ( 'icons/hicolor/scalable/apps',
+        ( 'share/icons/hicolor/scalable/apps',
          ['data/gnome-keysign.svg']),
     ],
     include_package_data = True,
